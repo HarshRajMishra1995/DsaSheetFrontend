@@ -1,0 +1,52 @@
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import { loginFetch, signUpFetch } from "../../services/Auth";
+
+export const loginUser = createAsyncThunk(
+  "auth/loginUser",
+  async (credentials, thunkAPI) => {
+    console.log("Credentials ---> ", credentials);
+    const response = await loginFetch(credentials);
+    if (response) {
+      return response; // Assuming the API returns the user data on success
+    } else {
+      return thunkAPI.rejectWithValue("Invalid credentials");
+    }
+  }
+);
+export const signUpUser = createAsyncThunk(
+  "auth/signUpUser",
+  async (credentials, thunkAPI) => {
+    const response = await signUpFetch(credentials);
+    if (response) {
+      return response; // Assuming the API returns the user data on success
+    } else {
+      return thunkAPI.rejectWithValue("Invalid credentials");
+    }
+  }
+);
+
+const authSlice = createSlice({
+  name: "auth",
+  initialState: {
+    user: null,
+    status: "idle",
+    error: null,
+  },
+  reducers: {},
+  extraReducers: (builder) => {
+    builder
+      .addCase(loginUser.pending, (state) => {
+        state.status = "loading";
+      })
+      .addCase(loginUser.fulfilled, (state, action) => {
+        state.status = "succeeded";
+        state.user = action.payload;
+      })
+      .addCase(loginUser.rejected, (state, action) => {
+        state.status = "failed";
+        state.error = action.payload;
+      });
+  },
+});
+
+export default authSlice.reducer;
