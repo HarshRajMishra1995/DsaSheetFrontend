@@ -1,43 +1,67 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { topicsList } from "../redux/slices/TopicSlice";
+import { jwtDecode as jwt_decode } from "jwt-decode";
+import { topicsList, userProgress } from "../redux/slices/TopicSlice";
+import { getUserProgress } from "../redux/slices/AuthSlice";
 import { Card, Collapse, Checkbox, Tag } from "antd";
 
 const { Panel } = Collapse;
 
 const Dashboard = () => {
+  const [userId, setUserId] = useState(null);
   const dispatch = useDispatch();
   const { topics } = useSelector((state) => state.topic);
 
-  // State to track completed problems (retrieved from localStorage initially)
-  const [completedProblems, setCompletedProblems] = useState(
-    JSON.parse(localStorage.getItem("completedProblems")) || {}
-  );
+  // State to track completed problems
+  const [completedProblems, setCompletedProblems] = useState({});
 
-  // Fetch topics list on mount
-  const getTopicsList = async () => {
+  // Fetch topics list and user progress on mount
+  const getTopicsList = async (userId) => {
     await dispatch(topicsList());
+    let resultAction = await dispatch(getUserProgress({ userId }));
+    if (getUserProgress.fulfilled.match(resultAction)) {
+      const fetchedUserProgressDetails = resultAction.payload;
+      console.log(
+        "fetchedUserProgressDetails ---> ",
+        fetchedUserProgressDetails
+      );
+      const progress = fetchedUserProgressDetails.progress || [];
+      // Update completedProblems based on fetched progress
+      const newCompletedProblems = {};
+      progress.forEach(({ topicId, completed }) => {
+        newCompletedProblems[topicId] = completed;
+      });
+      setCompletedProblems(newCompletedProblems);
+    }
   };
 
   useEffect(() => {
-    getTopicsList();
-  }, []);
+    const userToken = localStorage.getItem("token");
+    if (userToken) {
+      const tokenDetails = jwt_decode(userToken);
+      const id = tokenDetails.userId;
+      setUserId(id); // Set userId
+
+      // Call getTopicsList only after userId is set
+      getTopicsList(id);
+    }
+  }, [dispatch]);
 
   // Handle checkbox change
-  const handleCheckboxChange = (chapterId, problemId) => {
+  const handleCheckboxChange = async (topicId) => {
     const updatedCompletedProblems = {
       ...completedProblems,
-      [chapterId]: {
-        ...(completedProblems[chapterId] || {}),
-        [problemId]: !completedProblems[chapterId]?.[problemId],
-      },
+      [topicId]: !completedProblems[topicId],
     };
 
     // Save to state and localStorage
     setCompletedProblems(updatedCompletedProblems);
-    localStorage.setItem(
-      "completedProblems",
-      JSON.stringify(updatedCompletedProblems)
+    await dispatch(
+      userProgress({
+        userId,
+        topicId,
+        completed: updatedCompletedProblems[topicId], // Use updated value
+      })
     );
   };
 
@@ -62,13 +86,8 @@ const Dashboard = () => {
                   {chapter.subtopics.map((subtopic) => (
                     <Card key={subtopic._id} className="mb-2">
                       <Checkbox
-                        checked={
-                          completedProblems[chapter._id]?.[subtopic._id] ||
-                          false
-                        }
-                        onChange={() =>
-                          handleCheckboxChange(chapter._id, subtopic._id)
-                        }
+                        checked={completedProblems[subtopic._id] || false}
+                        onChange={() => handleCheckboxChange(subtopic._id)}
                       >
                         {subtopic.problem}
                       </Checkbox>

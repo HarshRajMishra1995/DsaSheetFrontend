@@ -31,5 +31,12 @@ const signUpFetch = async ({ username, email, password }) => {
     });
   return result;
 };
+const userProgressFetch = async ({ userId }) => {
+  console.log("Into fetch ---> ", userId);
+  let result = await axios.get(
+    `http://localhost:5000/api/v1/Auth/${userId}/progress`
+  );
+  return result.data;
+};
 
-export { loginFetch, signUpFetch };
+export { loginFetch, signUpFetch, userProgressFetch };
