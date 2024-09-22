@@ -1,13 +1,19 @@
 import React from "react";
-import { Layout, Menu } from "antd";
-import { Link } from "react-router-dom";
+import { Layout, Menu, Button } from "antd";
+import { Link, useNavigate } from "react-router-dom";
 
 const { Header } = Layout;
 
 const Navbar = () => {
+  const navigate = useNavigate();
+  const handleLogout = () => {
+    localStorage.clear();
+    localStorage.removeItem("token");
+    navigate("/");
+  };
   return (
-    <Header className="bg-blue-600">
-      <div className="flex justify-between items-center">
+    <Header className="w-full bg-blue-600">
+      <div className="w-full flex justify-between items-center">
         <h1 className="text-white text-2xl">DSA Sheet</h1>
         <Menu theme="dark" mode="horizontal" className="bg-blue-600">
           <Menu.Item key="1">
@@ -17,7 +23,7 @@ const Navbar = () => {
             <Link to="/profile">Profile</Link>
           </Menu.Item>
           <Menu.Item key="3">
-            <Link to="/logout">Logout</Link>
+            <Button onClick={handleLogout}>Logout</Button>
           </Menu.Item>
         </Menu>
       </div>
